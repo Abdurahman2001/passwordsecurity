@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Test - Password Manager</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8fafc;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .success { background-color: #d1fae5; color: #065f46; }
+        .error { background-color: #fee2e2; color: #991b1b; }
+        .info { background-color: #dbeafe; color: #1e40af; }
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #1d4ed8; }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔒 Security Test Suite - Password Manager</h1>
+    <p>This page tests the security features of the password manager to help you understand how they work.</p>
+
+    <div class="test-section">
+        <h2>1. Password Strength Validation Test</h2>
+        <p>Test different passwords to see how the strength validation works:</p>
+        <input type="password" id="testPassword" placeholder="Enter a password to test">
+        <button onclick="testPasswordStrength()">Test Password Strength</button>
+        <div id="strengthResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. XSS Protection Test</h2>
+        <p>Try to inject malicious scripts to test XSS protection:</p>
+        <textarea id="xssTest" placeholder="Try: <script>alert('XSS')</script> or <img src=x onerror=alert('XSS')>"></textarea>
+        <button onclick="testXSSProtection()">Test XSS Protection</button>
+        <div id="xssResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Cryptographic Randomness Test</h2>
+        <p>Generate multiple passwords to see cryptographic randomness in action:</p>
+        <button onclick="testRandomness()">Generate 5 Random Passwords</button>
+        <div id="randomnessResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. Encryption/Decryption Test</h2>
+        <p>Test the AES-256-GCM encryption and decryption:</p>
+        <input type="text" id="testData" placeholder="Enter text to encrypt" value="Hello, World!">
+        <input type="password" id="testKey" placeholder="Enter encryption password" value="testpassword123">
+        <button onclick="testEncryption()">Test Encryption</button>
+        <div id="encryptionResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>5. Brute Force Protection Test</h2>
+        <p>Simulate the computational cost of PBKDF2 key derivation:</p>
+        <button onclick="testPBKDF2()">Test PBKDF2 (1000 iterations)</button>
+        <div id="pbkdf2Result"></div>
+    </div>
+
+    <script>
+        // Import functions from the main script
+        // Note: In a real scenario, these would be imported from script.js
+        
+        // Simplified versions for testing
+        function stringToArrayBuffer(str) {
+            const encoder = new TextEncoder();
+            return encoder.encode(str);
+        }
+
+        function arrayBufferToString(buffer) {
+            const decoder = new TextDecoder();
+            return decoder.decode(buffer);
+        }
+
+        function arrayBufferToBase64(buffer) {
+            const bytes = new Uint8Array(buffer);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return btoa(binary);
+        }
+
+        function base64ToArrayBuffer(base64) {
+            const binary = atob(base64);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        async function generateRandomBytes(length) {
+            const array = new Uint8Array(length);
+            crypto.getRandomValues(array);
+            return array.buffer;
+        }
+
+        async function deriveKeyFromPassword(password, salt, iterations = 1000) {
+            const passwordBuffer = stringToArrayBuffer(password);
+            const passwordKey = await crypto.subtle.importKey(
+                'raw',
+                passwordBuffer,
+                'PBKDF2',
+                false,
+                ['deriveBits', 'deriveKey']
+            );
+            
+            const derivedKey = await crypto.subtle.deriveKey(
+                {
+                    name: 'PBKDF2',
+                    salt: salt,
+                    iterations: iterations,
+                    hash: 'SHA-256'
+                },
+                passwordKey,
+                {
+                    name: 'AES-GCM',
+                    length: 256
+                },
+                false,
+                ['encrypt', 'decrypt']
+            );
+            
+            return derivedKey;
+        }
+
+        async function encryptData(data, key) {
+            const iv = await generateRandomBytes(12);
+            const dataBuffer = stringToArrayBuffer(data);
+            
+            const encryptedBuffer = await crypto.subtle.encrypt(
+                {
+                    name: 'AES-GCM',
+                    iv: iv
+                },
+                key,
+                dataBuffer
+            );
+            
+            return {
+                iv: arrayBufferToBase64(iv),
+                ciphertext: arrayBufferToBase64(encryptedBuffer)
+            };
+        }
+
+        async function decryptData(encryptedData, key) {
+            const iv = base64ToArrayBuffer(encryptedData.iv);
+            const ciphertext = base64ToArrayBuffer(encryptedData.ciphertext);
+            
+            const decryptedBuffer = await crypto.subtle.decrypt(
+                {
+                    name: 'AES-GCM',
+                    iv: iv
+                },
+                key,
+                ciphertext
+            );
+            
+            return arrayBufferToString(decryptedBuffer);
+        }
+
+        function validatePasswordStrength(password) {
+            let score = 0;
+            const feedback = [];
+            
+            if (password.length >= 8) {
+                score += 1;
+            } else {
+                feedback.push('Password should be at least 8 characters long');
+            }
+            
+            if (password.length >= 12) score += 1;
+            if (password.length >= 16) score += 1;
+            
+            if (/[a-z]/.test(password)) score += 1;
+            if (/[A-Z]/.test(password)) score += 1;
+            if (/[0-9]/.test(password)) score += 1;
+            if (/[^A-Za-z0-9]/.test(password)) score += 1;
+            
+            if (/(.)\1{2,}/.test(password)) {
+                score -= 1;
+                feedback.push('Avoid repeated characters');
+            }
+            
+            if (/123|abc|qwe|password|admin/i.test(password)) {
+                score -= 2;
+                feedback.push('Avoid common patterns and words');
+            }
+            
+            let strength = 'weak';
+            if (score >= 4) strength = 'fair';
+            if (score >= 5) strength = 'good';
+            if (score >= 6) strength = 'strong';
+            
+            return { score, strength, feedback };
+        }
+
+        function generateSecurePassword(length = 16) {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+            let password = '';
+            const randomArray = new Uint8Array(length);
+            crypto.getRandomValues(randomArray);
+            
+            for (let i = 0; i < length; i++) {
+                const randomIndex = randomArray[i] % chars.length;
+                password += chars[randomIndex];
+            }
+            
+            return password;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Test Functions
+        function testPasswordStrength() {
+            const password = document.getElementById('testPassword').value;
+            const result = validatePasswordStrength(password);
+            const resultDiv = document.getElementById('strengthResult');
+            
+            resultDiv.innerHTML = `
+                <div class="test-result ${result.strength === 'strong' ? 'success' : result.strength === 'weak' ? 'error' : 'info'}">
+                    <strong>Strength:</strong> ${result.strength.toUpperCase()}<br>
+                    <strong>Score:</strong> ${result.score}/8<br>
+                    <strong>Feedback:</strong> ${result.feedback.length > 0 ? result.feedback.join(', ') : 'Good password!'}
+                </div>
+            `;
+        }
+
+        function testXSSProtection() {
+            const input = document.getElementById('xssTest').value;
+            const escaped = escapeHtml(input);
+            const resultDiv = document.getElementById('xssResult');
+            
+            resultDiv.innerHTML = `
+                <div class="test-result info">
+                    <strong>Original Input:</strong> ${input}<br>
+                    <strong>Escaped Output:</strong> ${escaped}<br>
+                    <strong>Rendered Safely:</strong> <span id="safeRender"></span>
+                </div>
+            `;
+            
+            // Safely render the escaped content
+            document.getElementById('safeRender').innerHTML = escaped;
+        }
+
+        function testRandomness() {
+            const resultDiv = document.getElementById('randomnessResult');
+            let passwords = '';
+            
+            for (let i = 0; i < 5; i++) {
+                passwords += generateSecurePassword(16) + '<br>';
+            }
+            
+            resultDiv.innerHTML = `
+                <div class="test-result success">
+                    <strong>Generated Passwords:</strong><br>
+                    ${passwords}
+                    <em>Each password is cryptographically random and unique!</em>
+                </div>
+            `;
+        }
+
+        async function testEncryption() {
+            const data = document.getElementById('testData').value;
+            const password = document.getElementById('testKey').value;
+            const resultDiv = document.getElementById('encryptionResult');
+            
+            try {
+                // Generate salt and derive key
+                const salt = await generateRandomBytes(32);
+                const key = await deriveKeyFromPassword(password, salt, 1000);
+                
+                // Encrypt
+                const encrypted = await encryptData(data, key);
+                
+                // Decrypt
+                const decrypted = await decryptData(encrypted, key);
+                
+                resultDiv.innerHTML = `
+                    <div class="test-result success">
+                        <strong>Original Data:</strong> ${data}<br>
+                        <strong>Encrypted (Base64):</strong> ${encrypted.ciphertext}<br>
+                        <strong>IV (Base64):</strong> ${encrypted.iv}<br>
+                        <strong>Decrypted:</strong> ${decrypted}<br>
+                        <strong>Test Result:</strong> ${data === decrypted ? '✅ SUCCESS' : '❌ FAILED'}
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="test-result error">
+                        <strong>Error:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function testPBKDF2() {
+            const resultDiv = document.getElementById('pbkdf2Result');
+            const password = 'testpassword';
+            const salt = await generateRandomBytes(32);
+            
+            const startTime = performance.now();
+            
+            try {
+                const key = await deriveKeyFromPassword(password, salt, 1000);
+                const endTime = performance.now();
+                const duration = endTime - startTime;
+                
+                resultDiv.innerHTML = `
+                    <div class="test-result info">
+                        <strong>PBKDF2 Test Results:</strong><br>
+                        <strong>Iterations:</strong> 1,000<br>
+                        <strong>Duration:</strong> ${duration.toFixed(2)}ms<br>
+                        <strong>Key Generated:</strong> ✅ Success<br>
+                        <em>Note: The real app uses 100,000 iterations, which would take ~${(duration * 100).toFixed(0)}ms</em>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="test-result error">
+                        <strong>Error:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Auto-test on page load
+        window.addEventListener('load', () => {
+            console.log('Security test suite loaded. Try the different test functions to understand the security features.');
+        });
+    </script>
+</body>
+</html>
