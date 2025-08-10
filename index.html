@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Educational Password Manager - Learn Ethical Hacking Security Practices">
+    <title>Secure Password Manager - Ethical Hacking Learning</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Security: No external CDNs to prevent supply chain attacks -->
+</head>
+<body>
+    <!-- Main container with proper semantic structure -->
+    <div class="container">
+        <header class="header">
+            <h1>🔐 Secure Password Manager</h1>
+            <p class="subtitle">Educational Tool for Learning Ethical Hacking Security Practices</p>
+        </header>
+
+        <!-- Master Password Section - Critical Security Component -->
+        <section class="master-password-section" id="masterPasswordSection">
+            <h2>🔑 Master Password Setup</h2>
+            <p class="security-note">
+                <strong>Security Note:</strong> Your master password encrypts all stored passwords. 
+                Never share it and ensure it's strong!
+            </p>
+            <div class="form-group">
+                <label for="masterPassword">Master Password:</label>
+                <input type="password" id="masterPassword" placeholder="Enter your master password" required>
+                <div class="password-strength" id="masterPasswordStrength"></div>
+            </div>
+            <div class="form-group">
+                <label for="confirmMasterPassword">Confirm Master Password:</label>
+                <input type="password" id="confirmMasterPassword" placeholder="Confirm your master password" required>
+            </div>
+            <button type="button" id="setupMasterPassword" class="btn btn-primary">Setup Master Password</button>
+        </section>
+
+        <!-- Login Section -->
+        <section class="login-section hidden" id="loginSection">
+            <h2>🔐 Login</h2>
+            <div class="form-group">
+                <label for="loginPassword">Master Password:</label>
+                <input type="password" id="loginPassword" placeholder="Enter your master password" required>
+            </div>
+            <button type="button" id="loginBtn" class="btn btn-primary">Login</button>
+        </section>
+
+        <!-- Main Application Section -->
+        <main class="main-app hidden" id="mainApp">
+            <!-- Password Generator Section -->
+            <section class="password-generator">
+                <h2>🛠️ Password Generator</h2>
+                <p class="security-note">
+                    <strong>Security Note:</strong> Strong passwords are your first line of defense. 
+                    Use a mix of character types and sufficient length.
+                </p>
+                
+                <div class="generator-controls">
+                    <div class="form-group">
+                        <label for="passwordLength">Password Length:</label>
+                        <input type="range" id="passwordLength" min="8" max="64" value="16">
+                        <span id="lengthDisplay">16</span>
+                    </div>
+                    
+                    <div class="checkbox-group">
+                        <label>
+                            <input type="checkbox" id="includeUppercase" checked>
+                            Include Uppercase (A-Z)
+                        </label>
+                        <label>
+                            <input type="checkbox" id="includeLowercase" checked>
+                            Include Lowercase (a-z)
+                        </label>
+                        <label>
+                            <input type="checkbox" id="includeNumbers" checked>
+                            Include Numbers (0-9)
+                        </label>
+                        <label>
+                            <input type="checkbox" id="includeSpecial" checked>
+                            Include Special Characters (!@#$%^&*)
+                        </label>
+                    </div>
+                    
+                    <button type="button" id="generatePassword" class="btn btn-secondary">Generate Password</button>
+                </div>
+                
+                <div class="generated-password">
+                    <label for="generatedPassword">Generated Password:</label>
+                    <div class="password-display">
+                        <input type="text" id="generatedPassword" readonly>
+                        <button type="button" id="copyPassword" class="btn btn-small">📋 Copy</button>
+                        <button type="button" id="savePassword" class="btn btn-small">💾 Save</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Password Storage Section -->
+            <section class="password-storage">
+                <h2>🗄️ Stored Passwords</h2>
+                <p class="security-note">
+                    <strong>Security Note:</strong> All passwords are encrypted with your master password 
+                    before being stored in the browser's local storage.
+                </p>
+                
+                <div class="storage-controls">
+                    <button type="button" id="exportPasswords" class="btn btn-secondary">📤 Export</button>
+                    <button type="button" id="importPasswords" class="btn btn-secondary">📥 Import</button>
+                    <button type="button" id="clearAllPasswords" class="btn btn-danger">🗑️ Clear All</button>
+                </div>
+                
+                <div class="password-list" id="passwordList">
+                    <!-- Passwords will be dynamically added here -->
+                </div>
+            </section>
+
+            <!-- Security Information Section -->
+            <section class="security-info">
+                <h2>🛡️ Security Information</h2>
+                <div class="info-grid">
+                    <div class="info-card">
+                        <h3>🔒 Encryption</h3>
+                        <p>All passwords are encrypted using AES-256-GCM with a key derived from your master password using PBKDF2.</p>
+                    </div>
+                    <div class="info-card">
+                        <h3>🔑 Key Derivation</h3>
+                        <p>PBKDF2 with 100,000 iterations and a random salt ensures your master password is securely converted to an encryption key.</p>
+                    </div>
+                    <div class="info-card">
+                        <h3>🎲 Random Generation</h3>
+                        <p>Passwords are generated using the Web Crypto API's cryptographically secure random number generator.</p>
+                    </div>
+                    <div class="info-card">
+                        <h3>💾 Local Storage</h3>
+                        <p>Encrypted data is stored locally in your browser. Never stored on external servers.</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal for password details -->
+    <div class="modal hidden" id="passwordModal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Password Details</h3>
+            <div class="form-group">
+                <label for="passwordTitle">Title:</label>
+                <input type="text" id="passwordTitle" placeholder="e.g., Gmail, Bank Account">
+            </div>
+            <div class="form-group">
+                <label for="passwordUsername">Username:</label>
+                <input type="text" id="passwordUsername" placeholder="Username or email">
+            </div>
+            <div class="form-group">
+                <label for="passwordUrl">URL (optional):</label>
+                <input type="url" id="passwordUrl" placeholder="https://example.com">
+            </div>
+            <div class="form-group">
+                <label for="passwordNotes">Notes (optional):</label>
+                <textarea id="passwordNotes" placeholder="Additional notes about this password"></textarea>
+            </div>
+            <button type="button" id="savePasswordDetails" class="btn btn-primary">Save Password</button>
+        </div>
+    </div>
+
+    <!-- Security: Load JavaScript at the end to prevent blocking -->
+    <script src="script.js"></script>
+</body>
+</html>
